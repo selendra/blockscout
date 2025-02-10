@@ -2,6 +2,8 @@ version: '3.8'
 services:
   certbot:
     image: certbot/certbot
+    depends_on:
+      - proxy
     container_name: certbot
     volumes:
       - ../ssl/certbot/conf:/etc/letsencrypt

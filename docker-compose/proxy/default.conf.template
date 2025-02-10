@@ -1,7 +1,6 @@
 map $http_upgrade $connection_upgrade {
-
-  default upgrade;
-  ''      close;
+    default upgrade;
+    ''      close;
 }
 
 server {
@@ -9,8 +8,10 @@ server {
     listen [::]:80;
     server_name ${DOMAIN_NAME};
     
-    location /.well-known/acme-challenge/ {
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
         root /var/www/certbot;
+        allow all;
     }
 
     location / {

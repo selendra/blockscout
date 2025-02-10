@@ -20,7 +20,9 @@ services:
     volumes:
       - ./ssl/certbot/conf:/etc/letsencrypt
       - ./ssl/certbot/www:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot -d ${DOMAIN_NAME} --email admin@selendra.org --agree-tos --no-eff-email --force-renewal
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot certonly --webroot --webroot-path=/var/www/certbot --email admin@selendra.org --domain $${DOMAIN_NAME} --agree-tos --no-eff-email --force-renewal; sleep 12h & wait $${!}; done;'"
 
   redis-db:
     extends:

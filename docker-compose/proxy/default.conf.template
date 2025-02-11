@@ -10,7 +10,7 @@ server {
 
     # Handle stats endpoints
     location /stats {
-        proxy_pass            ${BACK_PROXY_PASS};
+        proxy_pass            http://stats:8050;
         proxy_http_version    1.1;
         proxy_set_header      Host $host;
         proxy_set_header      X-Real-IP $remote_addr;

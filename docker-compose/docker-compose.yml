@@ -36,6 +36,8 @@ services:
         ETHEREUM_JSONRPC_TRACE_URL: https://rpc.selendra.org
         ETHEREUM_JSONRPC_WS_URL: wss://rpc.selendra.org
         CHAIN_ID: '1961'
+        
+      # Add trace
         TRACE_FIRST_BLOCK: '0'
         TRACE_LAST_BLOCK: '0'
         DISABLE_INTERNAL_TRANSACTIONS_FETCHER: 'true'

@@ -3,11 +3,13 @@ services:
     extends:
       file: ./services/redis.yml
       service: redis-db
+    restart: always
 
   db-init:
     extends:
       file: ./services/db.yml
       service: db-init
+    restart: always
 
   db:
     depends_on:
@@ -16,6 +18,7 @@ services:
     extends:
       file: ./services/db.yml
       service: db
+    restart: always
 
   backend:
     depends_on:
@@ -32,15 +35,14 @@ services:
     links:
       - db:database
     environment:
-        ETHEREUM_JSONRPC_HTTP_URL: https://rpc.selendra.org
-        ETHEREUM_JSONRPC_TRACE_URL: https://rpc.selendra.org
-        ETHEREUM_JSONRPC_WS_URL: wss://rpc.selendra.org
-        CHAIN_ID: '1961'
-        
-      # Add trace
-        TRACE_FIRST_BLOCK: '0'
-        TRACE_LAST_BLOCK: '0'
-        DISABLE_INTERNAL_TRANSACTIONS_FETCHER: 'true'
+      ETHEREUM_JSONRPC_HTTP_URL: https://rpc.selendra.org
+      ETHEREUM_JSONRPC_TRACE_URL: https://rpc.selendra.org
+      ETHEREUM_JSONRPC_WS_URL: wss://rpc.selendra.org
+      CHAIN_ID: '1961'
+      TRACE_FIRST_BLOCK: '0'
+      TRACE_LAST_BLOCK: '0'
+      DISABLE_INTERNAL_TRANSACTIONS_FETCHER: 'true'
+    restart: always
 
   nft_media_handler:
     depends_on:
@@ -53,16 +55,19 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
         RELEASE_VERSION: 6.10.1
+    restart: always
 
   visualizer:
     extends:
       file: ./services/visualizer.yml
       service: visualizer
+    restart: always
 
   sig-provider:
     extends:
       file: ./services/sig-provider.yml
       service: sig-provider
+    restart: always
 
   frontend:
     depends_on:
@@ -70,11 +75,13 @@ services:
     extends:
       file: ./services/frontend.yml
       service: frontend
+    restart: always
 
   stats-db-init:
     extends:
       file: ./services/stats.yml
       service: stats-db-init
+    restart: always
 
   stats-db:
     depends_on:
@@ -83,6 +90,7 @@ services:
     extends:
       file: ./services/stats.yml
       service: stats-db
+    restart: always
 
   stats:
     depends_on:
@@ -91,6 +99,7 @@ services:
     extends:
       file: ./services/stats.yml
       service: stats
+    restart: always
 
   user-ops-indexer:
     depends_on:
@@ -99,6 +108,7 @@ services:
     extends:
       file: ./services/user-ops-indexer.yml
       service: user-ops-indexer
+    restart: always
 
   proxy:
     depends_on:
@@ -108,3 +118,4 @@ services:
     extends:
       file: ./services/nginx.yml
       service: proxy
+    restart: always

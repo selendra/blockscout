@@ -1,0 +1,200 @@
+services:
+  redis-db:
+    extends:
+      file: ./services/redis.yml
+      service: redis-db
+
+  db-init:
+    extends:
+      file: ./services/db.yml
+      service: db-init
+
+  db:
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    extends:
+      file: ./services/db.yml
+      service: db
+
+  backend:
+    depends_on:
+      - db
+      - redis-db
+    extends:
+      file: ./services/backend.yml
+      service: backend
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+      args:
+        RELEASE_VERSION: 8.1.2
+    links:
+      - db:database
+    ports:
+      - "4000:4000"
+    environment:
+      # Selendra Network RPC Configuration
+      ETHEREUM_JSONRPC_HTTP_URL: https://rpc.selendra.org/
+      ETHEREUM_JSONRPC_TRACE_URL: https://rpc.selendra.org/
+      ETHEREUM_JSONRPC_WS_URL: wss://rpc.selendra.org/
+      CHAIN_ID: '1961'
+      # Database configuration
+      DATABASE_URL: postgresql://blockscout:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout
+      # Network specific settings
+      COIN_NAME: Selendra Network
+      COIN: SEL
+      DISABLE_MARKET: 'true'
+      # Performance settings
+      POOL_SIZE: 80
+      POOL_SIZE_API: 10
+      # Disable unnecessary features for better performance
+      DISABLE_WEBAPP: 'false'
+      API_V2_ENABLED: 'true'
+      # Disable NFT media handler to avoid permission issues
+      NFT_MEDIA_HANDLER_ENABLED: 'false'
+      # Disable internal transaction fetcher (not supported by Selendra RPC)
+      INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: 'true'
+      # Security settings
+      SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN
+    env_file:
+      - ./envs/common-blockscout.env
+    volumes:
+      - backend-data:/app/dets
+    restart: unless-stopped
+
+  nft_media_handler:
+    depends_on:
+      - backend
+    extends:
+      file: ./services/nft_media_handler.yml
+      service: nft_media_handler
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+      args:
+        RELEASE_VERSION: 8.1.2
+    env_file:
+      - ./envs/common-nft-media-handler.env
+    restart: unless-stopped
+
+  visualizer:
+    extends:
+      file: ./services/visualizer.yml
+      service: visualizer
+    env_file:
+      - ./envs/common-visualizer.env
+    restart: unless-stopped
+
+  sig-provider:
+    extends:
+      file: ./services/sig-provider.yml
+      service: sig-provider
+    restart: unless-stopped
+
+  smart-contract-verifier:
+    extends:
+      file: ./services/smart-contract-verifier.yml
+      service: smart-contract-verifier
+    env_file:
+      - ./envs/common-smart-contract-verifier.env
+    restart: unless-stopped
+
+  frontend:
+    depends_on:
+      - backend
+    extends:
+      file: ./services/frontend.yml
+      service: frontend
+    environment:
+      # Selendra Network Frontend Configuration
+      NEXT_PUBLIC_NETWORK_NAME: Selendra Network
+      NEXT_PUBLIC_NETWORK_SHORT_NAME: Selendra
+      NEXT_PUBLIC_NETWORK_ID: 1961
+      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: Selendra
+      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: SEL
+      NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18
+      NEXT_PUBLIC_IS_TESTNET: 'false'
+      # API Configuration
+      NEXT_PUBLIC_API_HOST: localhost
+      NEXT_PUBLIC_API_PROTOCOL: http
+      NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: ws
+      # Features (configured via env file)
+    env_file:
+      - ./envs/common-frontend.env
+      - ./envs/selendra-frontend.env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  stats-db-init:
+    extends:
+      file: ./services/stats.yml
+      service: stats-db-init
+
+  stats-db:
+    depends_on:
+      stats-db-init:
+        condition: service_completed_successfully
+    extends:
+      file: ./services/stats.yml
+      service: stats-db
+
+  stats:
+    depends_on:
+      - stats-db
+      - backend
+    extends:
+      file: ./services/stats.yml
+      service: stats
+    ports:
+      - "8082:8080"
+    environment:
+      - STATS__BLOCKSCOUT_API_URL=http://backend:4000
+      - STATS__SERVER__HTTP__ADDR=0.0.0.0:8080
+    env_file:
+      - ./envs/common-stats.env
+    restart: unless-stopped
+
+  user-ops-indexer:
+    depends_on:
+      - backend
+    extends:
+      file: ./services/user-ops-indexer.yml
+      service: user-ops-indexer
+    env_file:
+      - ./envs/common-user-ops-indexer.env
+    restart: unless-stopped
+
+  proxy:
+    depends_on:
+      - backend
+      - frontend
+      - stats
+    image: nginx
+    container_name: proxy
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - "./proxy:/etc/nginx/templates"
+    environment:
+      BACK_PROXY_PASS: http://backend:4000
+      FRONT_PROXY_PASS: http://frontend:3000
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: selendra-blockscout
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  stats-db-data:
+    driver: local
+  backend-data:
+    driver: local
